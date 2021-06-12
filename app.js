@@ -3,19 +3,24 @@
 　  DCS InfluxDBから履歴データのCSVを作成しZIPファイルで保存する
 */
 const os = require('os')
+const hostname = require('os').hostname()
+console.log('hostname=',hostname)
+//const CONFIG = require('./USER_DEFINE.js')[hostname];
+
 const moment = require('moment')
 const axExec=require("./applications/axExecution")
-const config=require("./app_config")
+const config=require("./app_config")[hostname];
 const cron = require('node-cron')
 
 // main function
-function main(){
+async function main(){
     let toDate=`${moment.utc().clone().add(-1,'days').format("YYYY-MM-DD 23:59:59")}`
     let startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD 00:00:00")
+    //console.log('== current from:',startDate,'to:',toDate)
     //let toDate=`${moment.utc().clone().add(0,'days')}`
     if(config.useSpecifiedDate){
-        toDate=moment.utc(config.specifiedDate,moment.ISO_8601).clone().add(config.days,'days').format("YYYY-MM-DD")
-        startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD")
+        toDate=moment.utc(config.specifiedDate,moment.ISO_8601).clone().add(config.days,'days').format("YYYY-MM-DD 23:59:59")
+        startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD 00:00:00")
     }
     console.log(`== ${logtime()} strart read from ${startDate} to ${toDate} as UTC`)
     axExec.check().then(()=>{               // DBへのPING
@@ -51,14 +56,18 @@ function main(){
 function logtime(){
     return `${moment().format("YYYY/MM/DD HH:mm:ss")}`
 }
-// exec every 30 minutes
-if(config.cyclic){
-console.log(`== ${logtime()} strart AX-to-CSV by run cycle:`,config.cyclictime)
-cron.schedule(config.cyclictime,()=>{
-    main()
-    //console.log(`== ${logtime()} wait to next cycle time`)
-})
-}else{
-    main()
-    console.log(`== ${logtime()} exit because option cyclic is `,config.cyclic)
-}
+
+//----------------------------------
+(async()=>{
+    // exec every 30 minutes
+    if(config.cyclic){
+    console.log(`== ${logtime()} strart AX-to-CSV by run cycle:`,config.cyclictime)
+    cron.schedule(config.cyclictime,()=>{
+        main()
+        //console.log(`== ${logtime()} wait to next cycle time`)
+    })
+    }else{
+        await main()
+        console.log(`================ ${logtime()} exit because option cyclic is `,config.cyclic)
+    }
+})();

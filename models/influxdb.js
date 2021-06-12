@@ -1,5 +1,6 @@
 require('date-utils')
 const os = require('os')
+const hostname = require('os').hostname()
 const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
@@ -7,7 +8,7 @@ const archiver = require('archiver')
 const iconv = require('iconv-lite')
 const {hex2num}=require('hex-2-num')
 const { waitForDebugger } = require('inspector')
-const config=require("../app_config")
+const config=require("../app_config")[hostname]
 const influxdb2=require("./influxdb2")
 
 module.exports = {
@@ -103,12 +104,12 @@ module.exports = {
                             let tabName=str.split('=')[0];
                             if (tagNames.findIndex(item => item === tabName)<0){
                                 tagNames.push(tabName)
-                            }              
+                            }
                         }
-                    })       
+                    })
                 })
                 console.log('-- tagNames:'+tagNames)
-                resolve(tagNames)      
+                resolve(tagNames)
             })
         })
     },
@@ -120,12 +121,12 @@ module.exports = {
                 names.map(function( name ) {
                     name.split(',').map(function( str ) {
                         if(str.lastIndexOf("=")>0 && str.lastIndexOf("iid")>-1){
-                            iids.push(str.split('=')[1])           
+                            iids.push(str.split('=')[1])
                         }
-                    })       
+                    })
                 })
                 console.log(`-- Found ${iids.length} iids.`)
-                resolve(iids)      
+                resolve(iids)
             })
         })
     },
@@ -141,7 +142,7 @@ module.exports = {
             for (let i=0; i<=groups; i++){
                 index=i*pointsInGroup
                 if(i<groups){fields.push(pointNames.slice(index,index+pointsInGroup))
-                }else if(last>0){fields.push(pointNames.slice(index,index+last))}    
+                }else if(last>0){fields.push(pointNames.slice(index,index+last))}
             }
             let params={
                 meature:config.influxdb.meature,
@@ -151,26 +152,26 @@ module.exports = {
                 starttime:`${FromToDatetime[0]}`,         //開始時刻
                 endtime:`${FromToDatetime[1]}`,           //終了時刻
                 readstarttime:`${FromToDatetime[2]}`,      //データ読込開始時刻（開始時刻-1h)
-                req_grp:0,                         //読込要求グループNo     
+                req_grp:0,                         //読込要求グループNo
                 error_grp:{},                      //読込 エラGroupリスト
                 error_count:0,                     //読込 エラグループ数
                 normal_count:0,                    //読込 正常グループ数
                 result:[],                         //データ
                 CsvfilePathNames:[],               //csv file names success
             }
-            async function readInflux(influx, params){  
+            async function readInflux(influx, params){
                 let NN=params.fields.length
                 if(config.gMax>0)NN=Math.min(config.gMax, params.fields.length)
                 let countdown_csvs=NN;
                 let g=-1
                 var arysz =''
-                while(countdown_csvs>0){         
+                while(countdown_csvs>0){
                     g++
                     countdown_csvs--
                     let start1 =Date.now()
                     let sts=''
                     arysz =''
-                    params.req_grp=g                
+                    params.req_grp=g
                     await influxdb2.readFromInflux_ax2(influx, params)
                     .then(result=>{
                         // 読込正常完了（１グループ）
@@ -223,7 +224,7 @@ module.exports = {
                                 ` files for any errors, ${duration.toFixed(1)}s`
                                 )
                         }
-                    }                 
+                    }
                 }
                 resolve(params.CsvfilePathNames)
             }
@@ -239,19 +240,19 @@ module.exports = {
             console.log(`-- exists already ${path.join(zipFilder,path.sep,zipFileName)}`)
             return true
         }
-        return false 
-    }, 
+        return false
+    },
     // csvをzipへ返換
     zipFile_ax:(site, date, CsvfileNames)=>{
         let zipFileName = `${site}_${date}.zip`
         let zipFilder = path.join(process.env.PWD||process.cwd(),"work",path.sep,'zip')
-        if (!fs.existsSync(zipFilder)) {fs.mkdirSync(zipFilder);}    
+        if (!fs.existsSync(zipFilder)) {fs.mkdirSync(zipFilder);}
         let archive = archiver.create('zip',{})
         let zipFilePath = `${zipFilder+path.sep+zipFileName}`
         let csvFilder = path.join(process.env.PWD||process.cwd(),"work",path.sep,'csv')
         if (fs.existsSync(zipFilePath)) {fs.unlinkSync(zipFilePath);}
         let output = fs.createWriteStream(zipFilePath)
-        archive.pipe(output)//    
+        archive.pipe(output)//
         for(let i=0; i<CsvfileNames.length; i++){
             archive.glob(CsvfileNames[i])
         }

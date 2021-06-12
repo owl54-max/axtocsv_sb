@@ -1,10 +1,11 @@
 const Influx = require('influx');
 const moment = require('moment')
 const os = require('os')
+const hostname = require('os').hostname()
 const fs = require('fs')
 const path = require('path')
 const archiver = require('archiver')
-const config=require("../app_config")
+const config=require("../app_config")[hostname]
 
 //** */ sb2 site(HQ)
 const host = config.influxdb.host                    // InfluxDB host

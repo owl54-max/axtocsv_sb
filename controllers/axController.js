@@ -1,10 +1,11 @@
 const Influx = require('influx');
 const moment = require('moment')
 const os = require('os')
+const hostname = require('os').hostname()
 const fs = require('fs')
 const path = require('path')
 const archiver = require('archiver')
-const config=require("../app_config")
+const config=require("../app_config")[hostname]
 
 //** */ sb2 site(HQ)
 const host = config.influxdb.host                    // InfluxDB host
@@ -49,7 +50,7 @@ module.exports = {
         .then(()=>{influxdb.getUsers(influx).then(()=>{})})
         .then(()=>{influxdb.getIidsFromTabs(influx).then(()=>{})})
     //    .then(()=>{influxdb.getPidsFromFields(influx).then(()=>{})})
-        
+
         .then(()=>{res.sendStatus(200)})
     },
 
@@ -96,7 +97,7 @@ module.exports = {
                             fields.push(pointNames.slice(index,index+pointsInGroup))
                         }else if(last>0){
                             fields.push(pointNames.slice(index,index+last))
-                        }    
+                        }
                     }
 
                     let params={meature:meature,
@@ -131,7 +132,7 @@ module.exports = {
 
                     //res.sendStatus(200)
                 })
-            })            
+            })
         })
     },
     showdb4:(req, res, next)=>{
@@ -166,12 +167,12 @@ module.exports = {
                     let P = pointNames.length;
                     let Y = datas.results[0].series[0].values.length -1;
                     let oldestDateTime=`${datas.results[0].series[0].values[0][0]}`
-                    let latestDateTime=`${datas.results[0].series[0].values[Y][0]}`                   
+                    let latestDateTime=`${datas.results[0].series[0].values[Y][0]}`
                     console.log(`-- Found data from ${oldestDateTime} to ${latestDateTime} ${Y} datas ${P} points`)
                     return [oldestDateTime, latestDateTime]
                 }
             })
-            .then((FromToDatetime)=>{  
+            .then((FromToDatetime)=>{
                     pointNames.splice(40,)   // get top 3 points for debug
 //                    pointNames=['SB_010200000000000096']
 //                    pointNames=['SB_010200010000007892']
@@ -185,7 +186,7 @@ module.exports = {
                             fields.push(pointNames.slice(index,index+pointsInGroup))
                         }else if(last>0){
                             fields.push(pointNames.slice(index,index+last))
-                        }    
+                        }
                     }
 
                     let params={meature:meature,
@@ -216,7 +217,7 @@ module.exports = {
                     var start2 =Date.now()
                     let countdown=pointNames.length;
                     for(let ii=0; ii<pointNames.length; ii++){
-                        let query = `select "ts","vr","iid" from ${meature} where time>=${params.starttime} 
+                        let query = `select "ts","vr","iid" from ${meature} where time>=${params.starttime}
                                     and time<${params.endtime} and iid='${pointNames[ii]}' Limit 86400`;
                         influx.queryRaw(query).then(datas => {
                             //** */ read latest data of the specified point
@@ -229,20 +230,20 @@ module.exports = {
                                     normal_msg["Normal: success"]=normal_count
                                     let Y = datas.results[0].series[0].values.length -1;
                                     let oldestDateTime=`${datas.results[0].series[0].values[0][0]}`
-                                    let latestDateTime=`${datas.results[0].series[0].values[Y][0]}`                   
+                                    let latestDateTime=`${datas.results[0].series[0].values[Y][0]}`
                                     console.log(`-- Read nrml ${pointNames[ii]} err=${error_count} nml=${normal_count} dwn=${countdown} ${oldestDateTime} to ${latestDateTime} ${Y} datas `)
                                     return `${datas.results[0].series[0].values[Y][0]}`
                                 } else {
                                     warm_count++
                                     normal_msg["Normal: warming"]=warm_count
                                 //    console.log(`-- Read warm ${pointNames[ii]} err=${error_count} nml=${normal_count} dwn=${countdown}`)
-                                    return 
-                                    
+                                    return
+
                                 }
                             }
                         })
                         .then(()=>{
-                            countdown--            
+                            countdown--
                             if(countdown<1) {
                                 var duration = Date.now()-start2
                                 console.log(`## Complete readFromInflux() all ${error_count+normal_count}: err=${error_count} nml=${normal_count} warm=${warm_count} ${duration}ms`)
@@ -269,7 +270,7 @@ module.exports = {
                         })
                     }
 
-            })            
+            })
         })
     },
     makecsv:(req, res, next)=>{
@@ -286,7 +287,7 @@ module.exports = {
         let reqlimitEvryRead=2000;
 
 
-        let reqpointsInGroup=16;     
+        let reqpointsInGroup=16;
         influxdb.gettags(influx)
         .then(tagNames=>{
             //** 読込開始時刻の全データ１行を読み込む*/
@@ -314,7 +315,7 @@ module.exports = {
                         fields.push(pointNames.slice(index,index+reqpointsInGroup))
                     }else if(last>0){
                         fields.push(pointNames.slice(index,index+last))
-                    }    
+                    }
                 }
 
                 let params={meature:meature,
@@ -363,7 +364,7 @@ module.exports = {
                     })
                 }
             })
-        })            
+        })
     },
 
     makecsv_ax:(req, res, next)=>{
@@ -372,7 +373,7 @@ module.exports = {
         FromToDatetime=[reqstarttime, reqendtime]
         influxdb.getIidsFromTabs(influx)
         .then(iidNames=>{
-            influxdb.makecsv_ax(influx,FromToDatetime,iidNames)         
+            influxdb.makecsv_ax(influx,FromToDatetime,iidNames)
         })
     },
     //** make zip file from csv files*/
@@ -383,7 +384,7 @@ module.exports = {
         // make zip
         res.end(`${moment().format("YYYY/MM/DD hh:mm:ss")} Start make zip file: ${site}_${date}.zip`)
         influxdb.zipFile(site, date)
-    
+
     },
 
 }
