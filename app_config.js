@@ -38,7 +38,7 @@ module.exports = {
         gMax:0,                         // >0：読込Group数（=0 全グループ）
         rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
         cyclic:false,                   // true:起動後サイクリック実行
-        cyclictime:'0 */1 * * * *',     // サイクリック時間
+        cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
