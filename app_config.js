@@ -32,7 +32,7 @@ module.exports = {
     },
     "TPSCPC065047":{
         // for test
-        useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
+        useSpecifiedDate:false,         // true:指定よりday日分（true:昨日までのday日間）
         specifiedDate:'2020-09-13',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
         gMax:0,                         // >0：読込Group数（=0 全グループ）
