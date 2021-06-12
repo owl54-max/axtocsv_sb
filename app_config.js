@@ -31,7 +31,7 @@ module.exports = {
         }
     },
     "TPSCPC065047":{
-        // from RPC
+        // from RPC (remote)
         useSpecifiedDate:false,         // true:指定よりday日分（true:昨日までのday日間）
         specifiedDate:'2020-09-13',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
