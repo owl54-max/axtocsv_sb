@@ -30,7 +30,7 @@ module.exports = {
             limitEvryRead:86400 ,       // 一度に読込む時刻列データ数
         }
     },
-    "default":{
+    "TPSCPC065047":{
         // for test
         useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
         specifiedDate:'2020-09-13',     // 指定日（useSpecifiedDate=falseは今日）
