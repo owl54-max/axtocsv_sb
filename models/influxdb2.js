@@ -3,10 +3,10 @@ const os = require('os')
 const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
-const archiver = require('archiver')
+//const archiver = require('archiver')
 const iconv = require('iconv-lite')
 const {hex2num}=require('hex-2-num')
-const { waitForDebugger } = require('inspector')
+//const { waitForDebugger } = require('inspector')
 const config=require("../app_config")
 module.exports = {
     // データ読込(１グループ)
@@ -55,7 +55,7 @@ module.exports = {
                         preVal.push(datas.results[0].series[i].values[0][1])
                     }
                     for(let j=0;j<nMax;j++){
-                        let time=datas.results[0].series[0].values[j][0]                       
+                        let time=datas.results[0].series[0].values[j][0]
                         let valid=!(moment(time).isBefore(moment(params.starttime)))
                         if(valid){
                             // add a new time row
@@ -78,7 +78,7 @@ module.exports = {
                                     cNormal[i]=cNormal[i]+1
                                 }
                                 values[values.length-1].push(val_real)
-                            }                   
+                            }
                         }
                     }
                     params.result[0]=values
@@ -86,7 +86,7 @@ module.exports = {
                     params.result[2]=cNormal
                     params.normal_count++
                     resolve(params)
-                } 
+                }
             })
         })
     },
@@ -113,8 +113,8 @@ module.exports = {
                 DP=config.jsonio[params.result[0][0][i]].DP
            }
             let nn=params.result[1]*pp +i;
-            if(i<params.result[0][0].length){                
-                csv=csv+os.EOL+nn+','+dcsTagNo+','+Description+','+Unit+','+DP;               
+            if(i<params.result[0][0].length){
+                csv=csv+os.EOL+nn+','+dcsTagNo+','+Description+','+Unit+','+DP;
             }else{
                 csv=csv+os.EOL+nn+',,,,';
             }
@@ -125,7 +125,7 @@ module.exports = {
         for(let i=1; i<params.result[0].length; i++){
             let date = params.result[0][i][0].split('T')[0].replace(/-/g,'/');
             let time = params.result[0][i][0].split('T')[1].replace(/[zZ]/g,'')
-            let vals = params.result[0][i].slice(1)  
+            let vals = params.result[0][i].slice(1)
             csv=csv+os.EOL+date+','+time+','+vals.join(',');
         }
         csv=csv+os.EOL

@@ -18,7 +18,7 @@ module.exports = {
             influx.ping(5000).then(influx_hosts => {
                 influx_hosts.forEach(host => {
                     if (host.online) {
-                        console.log(`-- Success ping to the ${host.url.host} responded in ${host.rtt}ms running ${host.version})`)
+                        console.log(`-- success: Ping to the ${host.url.host} responded in ${host.rtt}ms running ${host.version})`)
                         resolve()
                     } else {
                         console.log(`** Error ping to the ${host.url.host} is offline `)
@@ -45,7 +45,7 @@ module.exports = {
                     } else {
                         //console.log(`3:Not found database ${db_name}`)
                         console.log(`** error: cannot find such a database [${db_name}]`)
-                        reject (`3:Not found database ${db_name}`)
+                        reject (`1:Not found database ${db_name}`)
                     }
                 } else {
                     //console.log(`3:Found database ${db_name}`)
@@ -56,26 +56,36 @@ module.exports = {
             .catch(err=>{
                 console.log(`** error: cannot find such a database [${db_name}]`)
                 console.log(err)
-                reject (`3:Not found the database ${db_name}`)
+                reject (`2:Not found the database ${db_name}`)
             })
         })
     },
-    //** DB名一覧*/
-    getDatabaseNames:(influx)=>{
-        return new Promise((resolve, reject)=>{
+    //** DBチェック名*/
+    existDatabase:(influx, dbname)=>{
+        return new Promise((resolve)=>{
             influx.getDatabaseNames().then(names =>{
-                console.log('-- database names are: ' + names.join(', '))
+                if(names.indexOf(dbname)>-1){
+                    console.log(`-- success: Find the database [${dbname}]`)
+                    resolve()
+                }else{
+                    console.log(`** error : cannot find such a database [${dbname}]`)
+                    resolve(`not exist such db [${dbname}]`)
+                }
             })
-            resolve()
         })
     },
-    //** measurement一覧*/
-    getMeasurements:(influx)=>{
+    //** measurementチェック*/
+    existMeasurement:(influx, measurement)=>{
         return new Promise((resolve, reject)=>{
             influx.getMeasurements().then(names =>{
-                console.log('-- measurement names are: ' + names.join(', '))
+                if(names.indexOf(measurement)>-1){
+                    console.log(`-- success: Find the measurement [${measurement}]`)
+                    resolve()
+                }else{
+                    console.log(`** error : cannot find such a measurement [${measurement}]`)
+                    resolve(`not exist such measurement [${measurement}]`)
+                }
             })
-            resolve()
         })
     },
     //** ユーザー一覧*/
@@ -83,24 +93,25 @@ module.exports = {
         return new Promise((resolve, reject)=>{
             influx.getUsers().then(users => {
                 if (users.length>0){
-                    users.forEach(user => { console.log(`-- user_name:${user.user}, admin:${user.admin}`)})
+                    users.forEach(user => { console.log(`-- success: Find the user_name:${user.user}, admin:${user.admin}`)})
+                    resolve([`${user.user}`,`${user.admin}`])
                 } else {
-                    console.log(`-- user_name: none`)
+                    console.log(`-- success: Find the user_name [none]`)
+                    resolve(['none','none'])
                 }
-                resolve()
             })
 
         })
     },
     //** tag keysよりTag名リストを取得 */
     gettags:(influx)=>{
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve)=>{
             let tagNames=['time','undefined']
             influx.getSeries().then(names => {
                 //** field名以外の項目名（Tag名...）のリスト生成>>tagNames */
                 names.map(function( name ) {
                     name.split(',').map(function( str ) {
-                        if(str.lastIndexOf("=")>0 && str.lastIndexOf("iid")<-1){
+                        if(str.lastIndexOf("=")>0 && str.lastIndexOf("iid")<0){
                             let tabName=str.split('=')[0];
                             if (tagNames.findIndex(item => item === tabName)<0){
                                 tagNames.push(tabName)
@@ -108,14 +119,14 @@ module.exports = {
                         }
                     })
                 })
-                console.log('-- tagNames:'+tagNames)
+                console.log(`-- success: Find the tagNames [${tagNames}]`)
                 resolve(tagNames)
             })
         })
     },
     //** tag keysよりiid一覧を取得 */
-    getIidsFromTabs:(influx)=>{
-        return new Promise((resolve, reject)=>{
+    getIidsFromTags:(influx)=>{
+        return new Promise((resolve)=>{
             let iids=[]
             influx.getSeries().then(names => {
                 names.map(function( name ) {
@@ -125,12 +136,47 @@ module.exports = {
                         }
                     })
                 })
-                console.log(`-- Found ${iids.length} iids.`)
+                if(iids.length>0){
+                    console.log(`-- success: Found following ${iids.length} iids:`)
+                    console.log(iids)
+                }else{
+                    console.log(`** warming: Not found any iid in the Tags`)
+                }
                 resolve(iids)
             })
         })
     },
-
+    //** Fiels一覧を取得 */
+    getFields:(influx)=>{
+        return new Promise((resolve)=>{
+            const points = config.point_index_tbls.points
+        //    console.log(points)
+            let iids=[]
+            const data = fs.readFileSync(points,{encoding:'utf8', flag:'r'});
+        //    console.log(data)
+    //     influx.getFields().then(names => {
+    //         console.log(names)
+            resolve()
+    //     })
+    /*
+                names.map(function( name ) {
+                    name.split(',').map(function( str ) {
+                        if(str.lastIndexOf("=")>0 && str.lastIndexOf("iid")>-1){
+                            iids.push(str.split('=')[1])
+                        }
+                    })
+                })
+                if(iids.length>0){
+                    console.log(`-- success: Found following ${iids.length} iids:`)
+                    console.log(iids)
+                }else{
+                    console.log(`** warming: Not found any iid in the Tags`)
+                }
+                resolve(iids)
+            })
+    */
+        })
+    },
     makecsv_ax:(influx,FromToDatetime,iidNames, date)=>{
         return new Promise((resolve, reject)=>{
             var start =Date.now()
@@ -165,6 +211,7 @@ module.exports = {
                 let countdown_csvs=NN;
                 let g=-1
                 var arysz =''
+            //    console.log('NN=',NN)
                 while(countdown_csvs>0){
                     g++
                     countdown_csvs--
@@ -172,9 +219,11 @@ module.exports = {
                     let sts=''
                     arysz =''
                     params.req_grp=g
-                    await influxdb2.readFromInflux_ax2(influx, params)
+            //        console.log('params',params.req_grp)
+                    influxdb2.readFromInflux_ax2(influx, params)
                     .then(result=>{
                         // 読込正常完了（１グループ）
+                        console.log('influxdb2 then')
                         params=result
                         let X= params.result[0][0].length
                         let Y= params.result[0].length
@@ -200,6 +249,7 @@ module.exports = {
                         })
                     })
                     .catch(result=>{
+            //            console.log('influxdb2 catch')
                         arysz =params.error_grp[params.req_grp] // error
                         params.result={}
                         return
@@ -229,6 +279,7 @@ module.exports = {
                 resolve(params.CsvfilePathNames)
             }
             // start read
+            //console.log('start read',params)
             readInflux(influx, params)
         })
     },
