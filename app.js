@@ -2,7 +2,7 @@
   axtocsv - AX data to CSV file
 　  DCS InfluxDBから履歴データのCSVを作成しZIPファイルで保存する
 */
-const os = require('os')
+//const os = require('os')
 const hostname = require('os').hostname()
 console.log('hostname=',hostname)
 //const CONFIG = require('./USER_DEFINE.js')[hostname];
@@ -23,35 +23,65 @@ async function main(){
         startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD 00:00:00")
     }
     console.log(`== ${logtime()} strart read from ${startDate} to ${toDate} as UTC`)
-    axExec.check().then(()=>{               // DBへのPING
-        axExec.connentdb().then(()=>{       // DB接続
-            axExec.readinfo()               // DB情報取得
-            async function makezipfiles(){
-                for(let d=0;d<config.days;d++){
-                    let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
-                    let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')
-                    let reqendtime=moment.utc(startDate,moment.ISO_8601).clone().add(d+1,'days').add(-1,'seconds')
-                    let date=reqstarttime.toISOString().split('T')[0].replace(/-/g,'');
-                    console.log(`-- ${logtime()} make ${config.siteName}_${date}_csv.zip : ${reqstarttime.format("YYYY-MM-DD HH:mm:ss")}-${reqendtime.format("YYYY-MM-DD HH:mm:ss")} read from ${readstarttime.toISOString()} utc`)
-                    if(!axExec.existsZip_ax (config.siteName, date)){
-                        await axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
-                        .then((CsvfileNames)=>{
-                            axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
-                            return
-                        })
+    let err = await axExec.check()             // DBへのPING
+    if(!err){
+        err = await axExec.connentdb()      // DB接続
+        if(!err){
+            err = await axExec.readinfo()               // DB情報取得
+            if(!err){
+                await makezipfiles(startDate)
+                /*
+                async function makezipfiles(){
+                    for(let d=0;d<config.days;d++){
+                        let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
+                        let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')
+                        let reqendtime=moment.utc(startDate,moment.ISO_8601).clone().add(d+1,'days').add(-1,'seconds')
+                        let date=reqstarttime.toISOString().split('T')[0].replace(/-/g,'');
+                        console.log(`-- ${logtime()} make ${config.siteName}_${date}_csv.zip : ${reqstarttime.format("YYYY-MM-DD HH:mm:ss")}-${reqendtime.format("YYYY-MM-DD HH:mm:ss")} read from ${readstarttime.toISOString()} utc`)
+                        if(!axExec.existsZip_ax (config.siteName, date)){
+                            await axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
+                            .then((CsvfileNames)=>{
+                                axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
+                                return
+                            })
+                        }
                     }
-                }
+                */
+            //    }
+
             }
-            makezipfiles()
-        })
-        .catch(()=>{
-            console.log(`** ${logtime()} Abort becuse cannot find the DB`)
-        })
-    })
-    .catch(()=>{
-        console.log(`** ${logtime()} Abort becuse cannot connect to db host`)
+        }
+    }
+    if(err) console.log('** exit for error:',err)
+    return
+}
+async function makezipfiles(startDate){
+    return new Promise((resolve)=>{
+        for(let d=0;d<config.days;d++){
+            let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
+            let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')
+            let reqendtime=moment.utc(startDate,moment.ISO_8601).clone().add(d+1,'days').add(-1,'seconds')
+            let date=reqstarttime.toISOString().split('T')[0].replace(/-/g,'');
+            console.log(`-- ${logtime()} make ${config.siteName}_${date}_csv.zip : ${reqstarttime.format("YYYY-MM-DD HH:mm:ss")}-${reqendtime.format("YYYY-MM-DD HH:mm:ss")} read from ${readstarttime.toISOString()} utc`)
+            //console.log(config.siteName,date,axExec.existsZip_ax (config.siteName, date))
+            if(!axExec.existsZip_ax (config.siteName, date)||config.rewitezip){
+            //    console.log(reqstarttime.toISOString(),reqendtime.toISOString(),date,readstarttime.toISOString())
+                console.log('++++')
+                axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
+
+                .then((CsvfileNames)=>{
+                    console.log('====',CsvfileNames)
+                    axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
+                    resolve()
+        //            return
+                })
+            }
+        }
+        console.log(`-- ${logtime()} make end`)
+        resolve()
     })
 }
+
 // log time
 function logtime(){
     return `${moment().format("YYYY/MM/DD HH:mm:ss")}`
@@ -64,10 +94,10 @@ function logtime(){
     console.log(`== ${logtime()} strart AX-to-CSV by run cycle:`,config.cyclictime)
     cron.schedule(config.cyclictime,()=>{
         main()
-        //console.log(`== ${logtime()} wait to next cycle time`)
     })
     }else{
         await main()
-        console.log(`================ ${logtime()} exit because option cyclic is `,config.cyclic)
+        console.log(`== ${logtime()} exit because option cyclic is`,config.cyclic)
+        process.exit(0)
     }
 })();
