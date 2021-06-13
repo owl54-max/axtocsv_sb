@@ -276,6 +276,7 @@ module.exports = {
                         }
                     }
                 }
+                console.log('CsvfilePathNames:',params.CsvfilePathNames)
                 resolve(params.CsvfilePathNames)
             }
             // start read

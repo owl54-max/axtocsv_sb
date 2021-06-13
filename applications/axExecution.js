@@ -60,17 +60,20 @@ module.exports = {
             return(err)
     },
     makecsv_ax:async (reqstarttime, reqendtime, date,readstarttime)=>{
-        return await new Promise((resolve)=>{
-//        return new Promise((resolve)=>{
             // 有効ポイント抽出
-            let iidNames=Object.keys(config.jsonio)
-//            console.log('iidNames',iidNames)
+        //    let iidNames=Object.keys(config.jsonio)
+        //    console.log('iidNames',iidNames)
+            let points = await pointindex.getPoints(reqstarttime)
+        //    iidNames = Object.keys(points.fileds)
+            let iidNames=(config.useSiteDbOption)? Object.keys(points.fileds):Object.keys(config.jsonio);
+            console.log('iidNames',iidNames)
             FromToDatetime=[reqstarttime, reqendtime,readstarttime]
-            influxdb.makecsv_ax(influx,FromToDatetime,iidNames, date)
-            .then((csvFileList)=>{
-                resolve([date,csvFileList])
-            })
-        })
+            const csvFileList = await influxdb.makecsv_ax(influx,FromToDatetime,iidNames, date)
+            return csvFileList
+        //    .then((csvFileList)=>{
+        //        resolve([date,csvFileList])
+        //    })
+        //})
     },
     // make zip file from csv files
     existsZip_ax:(site, date)=>{

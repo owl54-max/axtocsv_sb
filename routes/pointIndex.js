@@ -1,5 +1,6 @@
 'use strict';
-//const moment = require("moment");
+const moment = require("moment");
+const Influx = require('influx');
 const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 
@@ -31,6 +32,53 @@ module.exports = {
                     resolve('cannot connect to mongodb,',err)
                 })
         })
+    },
+    //-------------------------------
+    // mongoDB からポイント情報読込
+    getPoints:async(startdate)=>{
+        if(!config.useSiteDbOption) return null
+        let startdatetime=nanoToTimestr(startdate)
+        let key={points_datetime:startdatetime}
+        let doc = await findOneSync(PointIndexHashModel,key,'PointIndex hash')
+        if(doc !==null){
+            console.log('success get hash:',doc.points_hash)
+            key={points_hash:doc.points_hash}
+            doc = await findOneSync(PointIndexModel,key,'PointIndex hash')
+            if(doc !==null){
+                const points_json = JSON.parse(doc.points);
+            //    console.log(points_json.)
+                console.log('point numbers=',Object.keys(points_json.fileds).length)
+                return points_json
+            }else{
+                console.log('findOneSync error2')
+                return null
+            }
+        }else{
+            console.log('findOneSync error1')
+            return null
+        }
+
+        //=========================================================
+        // functions
+        //-------------------------------
+        // mongoose  findOne
+        async function findOneSync(model,keys,message){
+            try {
+                let res = await model.findOne(keys);
+                //console.log(moment().format('hh:mm:ss'),'==success findOne (',message,')',res)
+                return res
+            } catch (err){
+                console.log(moment().format('hh:mm:ss'),'**** error findOne:',err)
+                return null
+            }
+        }
+        //-------------------------
+        // yyyy-mm-ddThh:mm:ss.xxxZYYYY-MM-DDThh:mm:ssZに変換
+        function nanoToTimestr(nanoTime) {
+            let nano = new Date(nanoTime)*1000000 // to nano seconds
+            return Influx.toNanoDate(String(nano)).toNanoISOString().replace(/\.0{9}Z/, 'Z');
+        }
+
     }
 
 }

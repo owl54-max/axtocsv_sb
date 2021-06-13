@@ -29,26 +29,8 @@ async function main(){
         if(!err){
             err = await axExec.readinfo()               // DB情報取得
             if(!err){
+                // make csv files, and then make zip
                 await makezipfiles(startDate)
-                /*
-                async function makezipfiles(){
-                    for(let d=0;d<config.days;d++){
-                        let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
-                        let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')
-                        let reqendtime=moment.utc(startDate,moment.ISO_8601).clone().add(d+1,'days').add(-1,'seconds')
-                        let date=reqstarttime.toISOString().split('T')[0].replace(/-/g,'');
-                        console.log(`-- ${logtime()} make ${config.siteName}_${date}_csv.zip : ${reqstarttime.format("YYYY-MM-DD HH:mm:ss")}-${reqendtime.format("YYYY-MM-DD HH:mm:ss")} read from ${readstarttime.toISOString()} utc`)
-                        if(!axExec.existsZip_ax (config.siteName, date)){
-                            await axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
-                            .then((CsvfileNames)=>{
-                                axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
-                                return
-                            })
-                        }
-                    }
-                */
-            //    }
-
             }
         }
     }
@@ -56,7 +38,7 @@ async function main(){
     return
 }
 async function makezipfiles(startDate){
-    return new Promise((resolve)=>{
+//    return new Promise((resolve)=>{
         for(let d=0;d<config.days;d++){
             let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
             let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')
@@ -67,19 +49,18 @@ async function makezipfiles(startDate){
             if(!axExec.existsZip_ax (config.siteName, date)||config.rewitezip){
             //    console.log(reqstarttime.toISOString(),reqendtime.toISOString(),date,readstarttime.toISOString())
                 console.log('++++')
-                axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
-
-                .then((CsvfileNames)=>{
-                    console.log('====',CsvfileNames)
-                    axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
-                    resolve()
-        //            return
-                })
+                const CsvfileNames = await axExec.makecsv_ax(reqstarttime.toISOString(), reqendtime.toISOString(), date,readstarttime.toISOString())
+            //    .then((CsvfileNames)=>{
+                console.log('==222==',CsvfileNames)
+                const zipfile = await axExec.makezip_ax(config.siteName, CsvfileNames[0], CsvfileNames[1])
+            //        resolve()
+                return
+            //    })
             }
         }
         console.log(`-- ${logtime()} make end`)
-        resolve()
-    })
+//        resolve()
+//    })
 }
 
 // log time
