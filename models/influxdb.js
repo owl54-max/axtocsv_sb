@@ -10,6 +10,8 @@ const {hex2num}=require('hex-2-num')
 const { waitForDebugger } = require('inspector')
 const config=require("../app_config")[hostname]
 const influxdb2=require("./influxdb2")
+const pointindex=require('../routes/pointindex.js');
+
 
 module.exports = {
     //** DB hostへping*/
@@ -147,143 +149,138 @@ module.exports = {
         })
     },
     //** Fiels一覧を取得 */
-    getFields:(influx)=>{
-        return new Promise((resolve)=>{
-            const points = config.point_index_tbls.points
-        //    console.log(points)
-            let iids=[]
-            const data = fs.readFileSync(points,{encoding:'utf8', flag:'r'});
-        //    console.log(data)
-    //     influx.getFields().then(names => {
-    //         console.log(names)
-            resolve()
-    //     })
-    /*
-                names.map(function( name ) {
-                    name.split(',').map(function( str ) {
-                        if(str.lastIndexOf("=")>0 && str.lastIndexOf("iid")>-1){
-                            iids.push(str.split('=')[1])
-                        }
-                    })
-                })
-                if(iids.length>0){
-                    console.log(`-- success: Found following ${iids.length} iids:`)
-                    console.log(iids)
-                }else{
-                    console.log(`** warming: Not found any iid in the Tags`)
-                }
-                resolve(iids)
-            })
-    */
-        })
+    getFields: async (reqstarttime)=>{
+    //    let fields=[]
+        let pointInfo={}
+        try{
+            if(config.useSiteDbOption){
+                // mongoDBのポイント一覧から入力
+                let points = await pointindex.getPoints(reqstarttime)
+                pointInfo=points.fileds
+            //    console.log(pointInfo)
+            //    fields=Object.keys(pointInfo);
+            }else{
+                // AXサーバのポイント一覧から入力
+                pointInfo=config.jsonio
+            //    console.log(pointInfo)
+            //    fields=Object.keys(pointInfo);
+            }
+        }catch{
+            console.log('** error:no point information database')
+            return pointInfo
+        }
+        return pointInfo
     },
-    makecsv_ax:(influx,FromToDatetime,iidNames, date)=>{
-        return new Promise((resolve, reject)=>{
-            var start =Date.now()
-            pointsInGroup=config.influxdb.pointsInGroup
-            let pointNames = Array.from(iidNames)
-            var fields=[]
-            let groups = Math.floor(pointNames.length/pointsInGroup)
-            let last = pointNames.length-groups*pointsInGroup
-            for (let i=0; i<=groups; i++){
-                index=i*pointsInGroup
-                if(i<groups){fields.push(pointNames.slice(index,index+pointsInGroup))
-                }else if(last>0){fields.push(pointNames.slice(index,index+last))}
-            }
-            let params={
-                meature:config.influxdb.meature,
-                date:date,
-                pointsInGroup:config.influxdb.pointsInGroup,//１グループ当たりのポイント数(=16)
-                fields:fields,                              //各グループ読込ポイント配列
-                starttime:`${FromToDatetime[0]}`,         //開始時刻
-                endtime:`${FromToDatetime[1]}`,           //終了時刻
-                readstarttime:`${FromToDatetime[2]}`,      //データ読込開始時刻（開始時刻-1h)
-                req_grp:0,                         //読込要求グループNo
-                error_grp:{},                      //読込 エラGroupリスト
-                error_count:0,                     //読込 エラグループ数
-                normal_count:0,                    //読込 正常グループ数
-                result:[],                         //データ
-                CsvfilePathNames:[],               //csv file names success
-            }
-            async function readInflux(influx, params){
-                let NN=params.fields.length
-                if(config.gMax>0)NN=Math.min(config.gMax, params.fields.length)
-                let countdown_csvs=NN;
-                let g=-1
-                var arysz =''
-            //    console.log('NN=',NN)
-                while(countdown_csvs>0){
-                    g++
-                    countdown_csvs--
-                    let start1 =Date.now()
-                    let sts=''
-                    arysz =''
-                    params.req_grp=g
-            //        console.log('params',params.req_grp)
-                    influxdb2.readFromInflux_ax2(influx, params)
-                    .then(result=>{
-                        // 読込正常完了（１グループ）
-                        console.log('influxdb2 then')
-                        params=result
-                        let X= params.result[0][0].length
-                        let Y= params.result[0].length
-                        let G= params.result[1]
-                        let cNormal=params.result[2] //実数データ個数
-                        arysz =`'csv':(${X}x${Y}) `
-                        let allbad=0
-                        let badidx=""
-                        cNormal.forEach(N=>{
-                            if(N>0){
-                                badidx+='-'
-                            }else{
-                                badidx+='b'
-                                allbad=1
-                            }
-                        })
-                        if(allbad>0)arysz+=badidx
-                        let csvAndFilename=influxdb2.convertToCsvFormat_ax(params)
-                        influxdb2.saveCsvFile(csvAndFilename)
-                        .then((CsvfileName)=>{
-                            params.CsvfilePathNames.push(CsvfileName)
-                            return
-                        })
-                    })
-                    .catch(result=>{
-            //            console.log('influxdb2 catch')
-                        arysz =params.error_grp[params.req_grp] // error
-                        params.result={}
-                        return
-                    })
-                    let t1=Date.now()-start1
-                    let tt=Date.now()-start
-                    let dt=params.date
-                    console.log(`-- ${moment().format("HH:mm:ss")} ${dt} ${params.req_grp}/${NN-1}, `+
-                                `total:${(tt/1000/60).toFixed(1)}m this:${(t1/1000).toFixed(1)}s, `+
-                                `csv file nml:${params.normal_count} ERR: ${params.error_count} ${arysz}`)
-                    if(arysz.indexOf('influx.queryRaw err')>-1){
-                        console.log(`** Abort for catch any error of the influx.queryRaw at ${moment().format("YYYY/MM/DD HH:mm:ss")}`)
-                        console.log(params.error_grp)
-                        countdown_csvs=0
-                    }else{
-                        if(countdown_csvs<1) {
-                            var duration = (Date.now()-start)/1000
-                            console.log(
-                                `-- ${moment().format("HH:mm:ss")} ${params.date}`+
-                                ` ${params.CsvfilePathNames.length} csv files succeed.,`+
-                                ` except not ${Object.keys(params.error_grp).length}`+
-                                ` files for any errors, ${duration.toFixed(1)}s`
-                                )
+    //**1日のAXデータからCSVファイルを生成する*/
+    makecsv_ax2:async (influx,FromToDatetime,iidNames, date, pointInfo)=>{
+        var start =Date.now()
+        pointsInGroup=config.influxdb.pointsInGroup
+        let pointNames = Array.from(iidNames)
+        var fields=[]
+        let groups = Math.floor(pointNames.length/pointsInGroup)
+        let last = pointNames.length-groups*pointsInGroup
+        for (let i=0; i<=groups; i++){
+            index=i*pointsInGroup
+            if(i<groups){fields.push(pointNames.slice(index,index+pointsInGroup))
+            }else if(last>0){fields.push(pointNames.slice(index,index+last))}
+        }
+        let params={
+            meature:config.influxdb.meature,
+            date:date,
+            pointsInGroup:config.influxdb.pointsInGroup,//１グループ当たりのポイント数(=16)
+            fields:fields,                              //各グループ読込ポイント配列
+            starttime:`${FromToDatetime[0]}`,           //開始時刻
+            endtime:`${FromToDatetime[1]}`,             //終了時刻
+            readstarttime:`${FromToDatetime[2]}`,       //データ読込開始時刻（開始時刻-1h)
+            req_grp:0,                                  //読込要求グループNo
+            error_grp:{},                               //読込 エラGroupリスト
+            error_count:0,                              //読込 エラグループ数
+            normal_count:0,                             //読込 正常グループ数
+            result:[],                                  //データ
+            CsvfilePathNames:[],                        //csv file names success
+            pointInfo:pointInfo,                        //Points information
+        }
+        let CsvfilePathNames = await readInflux(influx, params)
+        return CsvfilePathNames
+
+        //--------------------
+        // 指定１日の履歴データをCSVとして読み込む
+        // 読込は、AXサーバまたはBigDataのInfluxDB
+        async function readInflux(influx, params){
+        //    console.log(params.pointInfo)
+            let NN=params.fields.length
+            if(config.gMax>0)NN=Math.min(config.gMax, params.fields.length)
+            let countdown_csvs=NN;
+            let g=-1
+            var arysz =''
+            while(countdown_csvs>0){
+                g++
+                countdown_csvs--
+                let start1 =Date.now()
+                let sts=''
+                arysz =''
+                params.req_grp=g
+                // 指定日1日の1グループ分のデータ読み込み
+                let result = await influxdb2.readInflux2(influx, params)
+                if(!result){
+                    // 読込異常完了（１グループ)
+                    arysz =params.error_grp[params.req_grp] // error
+                    params.result={}
+                    //continue
+                }else{
+                    // 読込正常完了（１グループ）
+                    params=result
+                    let X= params.result[0][0].length
+                    let Y= params.result[0].length
+                    let G= params.result[1]
+                    let cNormal=params.result[2] //実数データ個数
+                    arysz =`'csv':(${X}x${Y}) `
+                    let allbad=0
+                    let badidx=""
+                    cNormal.forEach(N=>{
+                        if(N>0){
+                            badidx+='-'
+                        }else{
+                            badidx+='b'
+                            allbad=1
                         }
+                    })
+                    if(allbad>0)arysz+=badidx
+
+                    // 1グループ分のヘッダを付加しCSVテキストへ変換
+                    let csvAndFilename=influxdb2.convertToCsvFormat_ax(params)
+                    // 変換したCSVテキストをCSVファイルとして保存
+                    let CsvfilePathName = await influxdb2.saveCsvFile(csvAndFilename)
+                    if(CsvfilePathName.length>0){
+                        params.CsvfilePathNames.push(CsvfilePathName)
                     }
                 }
-                console.log('CsvfilePathNames:',params.CsvfilePathNames)
-                resolve(params.CsvfilePathNames)
+                let t1=Date.now()-start1
+                let tt=Date.now()-start
+                let dt=params.date
+                console.log(`-- ${moment().format("HH:mm:ss")} ${dt} ${params.req_grp}/${NN-1}, `+
+                            `total:${(tt/1000/60).toFixed(1)}m this:${(t1/1000).toFixed(1)}s, `+
+                            `csv file nml:${params.normal_count} ERR: ${params.error_count} ${arysz}`)
+                if(arysz.indexOf('influx.queryRaw err')>-1){
+                    console.log(`** Abort for catch any error of the influx.queryRaw at ${moment().format("YYYY/MM/DD HH:mm:ss")}`)
+                    console.log(params.error_grp)
+                    countdown_csvs=0
+                }else{
+                    if(countdown_csvs<1) {
+                        var duration = (Date.now()-start)/1000
+                        console.log(
+                            `-- ${moment().format("HH:mm:ss")} ${params.date}`+
+                            ` ${params.CsvfilePathNames.length} csv files succeed.,`+
+                            ` except not ${Object.keys(params.error_grp).length}`+
+                            ` files for any errors, ${duration.toFixed(1)}s`
+                            )
+                    }
+                }
             }
-            // start read
-            //console.log('start read',params)
-            readInflux(influx, params)
-        })
+            return params.CsvfilePathNames
+        }
     },
+    //------------------------------------------
     // make zip file from csv files
     existsZip_ax:(site, date)=>{
         let zipFileName = `${site}_${date}.zip`
@@ -296,22 +293,25 @@ module.exports = {
     },
     // csvをzipへ返換
     zipFile_ax:(site, date, CsvfileNames)=>{
-        let zipFileName = `${site}_${date}.zip`
-        let zipFilder = path.join(process.env.PWD||process.cwd(),"work",path.sep,'zip')
-        if (!fs.existsSync(zipFilder)) {fs.mkdirSync(zipFilder);}
-        let archive = archiver.create('zip',{})
-        let zipFilePath = `${zipFilder+path.sep+zipFileName}`
-        let csvFilder = path.join(process.env.PWD||process.cwd(),"work",path.sep,'csv')
-        if (fs.existsSync(zipFilePath)) {fs.unlinkSync(zipFilePath);}
-        let output = fs.createWriteStream(zipFilePath)
-        archive.pipe(output)//
-        for(let i=0; i<CsvfileNames.length; i++){
-            archive.glob(CsvfileNames[i])
-        }
-        archive.finalize()
-        output.on("close", function(){
-            var archive_size = archive.pointer()
-            console.log(`== ${moment().format("HH:mm:ss")} ${zipFileName} strored on ${zipFilder} :${(archive_size/1024/1024).toFixed(1)} MB`)
+        return new Promise((resolve)=>{
+            console.log('start make zip influxdb')
+            let zipFileName = `${site}_${date}.zip`
+            let zipFildir = path.join(process.env.PWD||process.cwd(),"work",path.sep,'zip')
+            let zipFilePath = `${zipFildir+path.sep+zipFileName}`
+            if (!fs.existsSync(zipFildir)) {fs.mkdirSync(zipFildir);}       // mk zip dir if not exist
+            if (fs.existsSync(zipFilePath)) {fs.unlinkSync(zipFilePath);}   // remove zip file if exist
+            let csvFiledir = path.dirname(CsvfileNames[0])
+
+            let archive = archiver.create('zip',{})
+            let output = fs.createWriteStream(zipFilePath)
+            archive.pipe(output)
+            archive.glob(`${date}*.csv`,{cwd:csvFiledir})
+            archive.finalize()
+            output.on("close", function(){
+                var archive_size = archive.pointer()
+                console.log(`== ${moment().format("HH:mm:ss")} ${zipFileName} strored on ${zipFildir} :${(archive_size/1024/1024).toFixed(1)} MB`)
+                resolve()
+            })
         })
     },
 }

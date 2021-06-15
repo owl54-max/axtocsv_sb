@@ -1,34 +1,24 @@
 const Influx = require('influx');
-//const moment = require('moment')
-//const os = require('os')
 const hostname = require('os').hostname()
-//const fs = require('fs')
-//const path = require('path')
-//const archiver = require('archiver')
 const config=require("../app_config")[hostname]
+const moment = require('moment')
 
 //** */ sb2 site(HQ)
 const host = config.influxdb.host                    // InfluxDB host
 const port = config.influxdb.port
 const db_name = config.influxdb.db_name                    // data base name
 const meature = config.influxdb.meature                    // measurement
-//const keyPoint = config.influxdb.keyPoint                   //
-//const where_query_tags = config.influxdb.where_query_tags 　//
-//** */ CEL2 BigData(localhost)
-//const and_query_tags = config.influxdb.and_query_tags
-//var tagNames=config.influxdb.tagNames
-// read option
-//const pointsInGroup=config.influxdb.pointsInGroup         // 一度に読込むポイント点数
-//const limitEvryRead=config.influxdb.limitEvryRead         // 一度に読込む時刻列データ数
-//const samplingtime=config.influxdb.samplingtime           // データ数周期
 const createdb_option = config.influxdb.createdb_option;  // create database(db_name) when not exist it.
 
 const influx = new Influx.InfluxDB({ host: host, database: db_name, port: port });
 const influxdb=require('../models/influxdb');
 const pointindex=require('../routes/pointindex.js');
+// log time
+function logtime(){
+    return `${moment().format("HH:mm:ss")}`
+}
 
-//const influxdb2=require('../models/influxdb2');
-//const { data } = require('../../bigdata_read/models/db_controllers');
+
 module.exports = {
     /** DBへのPING*/
     check:()=>{
@@ -50,30 +40,27 @@ module.exports = {
     readinfo:async ()=>{
             //** database名一覧*/
             let err
-            err = await pointindex.connect()
-            err = await influxdb.existDatabase(influx, db_name)
-            err = await influxdb.existMeasurement(influx, meature)
-            let tagNames =await influxdb.gettags(influx)
-            let user = await influxdb.getUsers(influx)
-            let iids = await influxdb.getIidsFromTags(influx)
+            err = await pointindex.connectWithMongoDB()             // connect with mongoDB if useSiteDbOption=true
+            err = await influxdb.existDatabase(influx, db_name)     // influxDBのDB名検査
+            err = await influxdb.existMeasurement(influx, meature)  // influxDBのmeasurement検査
+        //    let tagNames =await influxdb.gettags(influx)          // influxDBのTags読み込み
+        //    let user = await influxdb.getUsers(influx)            // influxDBのユーザ名読み込み
+        //    let iids = await influxdb.getIidsFromTags(influx)     // influxDBのiid読み込み
 
             return(err)
     },
     makecsv_ax:async (reqstarttime, reqendtime, date,readstarttime)=>{
             // 有効ポイント抽出
-        //    let iidNames=Object.keys(config.jsonio)
-        //    console.log('iidNames',iidNames)
-            let points = await pointindex.getPoints(reqstarttime)
-        //    iidNames = Object.keys(points.fileds)
-            let iidNames=(config.useSiteDbOption)? Object.keys(points.fileds):Object.keys(config.jsonio);
-            console.log('iidNames',iidNames)
-            FromToDatetime=[reqstarttime, reqendtime,readstarttime]
-            const csvFileList = await influxdb.makecsv_ax(influx,FromToDatetime,iidNames, date)
+            let csvFileList=[]
+        //    let iidNames = await influxdb.getFields(reqstarttime) // get iids
+            let pointInfo = await influxdb.getFields(reqstarttime) // get iids
+            let iids=Object.keys(pointInfo)
+            console.log(`-- ${logtime()} found ${iids.length} points`)
+            if(iids.length>0){
+                FromToDatetime=[reqstarttime, reqendtime,readstarttime]
+                csvFileList = await influxdb.makecsv_ax2(influx,FromToDatetime,iids, date, pointInfo)
+            }
             return csvFileList
-        //    .then((csvFileList)=>{
-        //        resolve([date,csvFileList])
-        //    })
-        //})
     },
     // make zip file from csv files
     existsZip_ax:(site, date)=>{
@@ -81,7 +68,9 @@ module.exports = {
         return influxdb.existsZip_ax(site, date)
     },
     // make zip file from csv files
-    makezip_ax: (site, date, CsvfileNames)=>{
-        influxdb.zipFile_ax(site, date, CsvfileNames)
+    makezip_ax: async (site, date, CsvfileNames)=>{
+        console.log('site=',site,'date=',date,'nmbs of csv=',CsvfileNames.length)
+        await influxdb.zipFile_ax(site, date, CsvfileNames)
+        return
     },
 }

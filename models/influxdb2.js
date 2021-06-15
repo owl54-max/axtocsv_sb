@@ -1,96 +1,164 @@
 require('date-utils')
 const os = require('os')
+const hostname = require('os').hostname()
 const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
-//const archiver = require('archiver')
 const iconv = require('iconv-lite')
 const {hex2num}=require('hex-2-num')
-//const { waitForDebugger } = require('inspector')
-const config=require("../app_config")
+const config=require("../app_config")[hostname]
 module.exports = {
-    // データ読込(１グループ)
-    readFromInflux_ax2: async (influx, params)=>{
-        return await new Promise((resolve, reject)=>{
-            let nKey = 'SUCSESS'
-            let wKey = 'WARNING'
-            let eKey = 'OTHERS'
-            let g=params.req_grp
-            let iids = `(iid='`+params.fields[params.req_grp].join("' or iid='")+`')`
-            let select = `select LAST(vr) as vr from ${params.meature}`
-            let where = `where time>'${params.readstarttime}' and time<'${params.endtime}'`
-            let tags = `and ${iids}`
-            let group = `group by time(${config.cyclesec}s), iid`
-            let query = `${select} ${where} ${tags} ${group}`
+    readInflux2:async(influx, params)=>{
+        if(config.useSiteDbOption){
+            // read from BIG
+            const result = await readFromInflux_big(influx, params)
+            return result
 
-            //select = `select vr from ${params.meature}`
-            //query = `${select} ${where} ${tags}  group by iid`
-            //console.log(query)
-            //console.log(where)
-            //1グループデータ読込
-            influx.queryRaw(query)
-            .then(datas => {
-                if (datas.results[0].error){
-                    params.error_count++
-                    params.error_grp[g]=`'results err':${datas.results[0].error}`
-                    reject(params)
+        }else{
+            // read from AX
+            const result = await readFromInflux_ax2(influx, params)
+            return result
 
-                }else if(!("series" in datas.results[0])){
-                    //console.log(datas.results[0])
-                    params.error_count++
-                    params.error_grp[g]=`'non series err':' '`
-                    reject(params)
+        }
+        //-------------------------------------------------
+        // BIG データ読込(１グループ)
+        async function readFromInflux_big(influx, params){
+            return new Promise((resolve)=>{
+                let nKey = 'SUCSESS'
+                let wKey = 'WARNING'
+                let eKey = 'OTHERS'
+                let g=params.req_grp
+                let select = `select LAST("${params.fields[params.req_grp][0]}") as "${params.fields[params.req_grp].join("\",\"")}"`
+                let from = `from ${params.meature}`
+                let where = `where time>'${params.readstarttime}' and time<'${params.endtime}'`
+                let group = `group by time(${config.cyclesec}s)`
+                let query = `${select} ${from} ${where} ${group}`
 
-                }else{
-                    // normal read
-                    let pMax=datas.results[0].series.length
-                    let nMax=datas.results[0].series[0].values.length
-                    let values=[['time']] // set 'time' as header
-                    let preVal=[]
-                    let cNormal= new Array(pMax).fill(0)//正常データ個数
-                    for(let i=0;i<pMax;i++){
-                        //set iid as header
-                        values[0].push(datas.results[0].series[i].tags.iid)
-                        //set pre-value for replace null data
-                        preVal.push(datas.results[0].series[i].values[0][1])
-                    }
-                    for(let j=0;j<nMax;j++){
-                        let time=datas.results[0].series[0].values[j][0]
-                        let valid=!(moment(time).isBefore(moment(params.starttime)))
-                        if(valid){
-                            // add a new time row
-                            values.push([time])
-                        }
-                        for(let i=0;i<pMax;i++){
-                            let value=[]
-                            let val_real=config.badDatacode
-                            let vr=datas.results[0].series[i].values[j][1]
-                            if(vr==null){
-                                vr=preVal[i]
-                                if(vr==null){vr='0,8'}//set BAD
-                            }else{
-                                preVal[i]=vr
-                            }
+                influx.queryRaw(query)
+                .then(datas => {
+                    if (datas.results[0].error){
+                        // error in queryRaw
+                        params.error_count++
+                        params.error_grp[g]=`'results err':${datas.results[0].error}`
+                        resolve() // error queryRaw
+
+                    }else if(!("series" in datas.results[0])){
+                        // error non series
+                        params.error_count++
+                        params.error_grp[g]=`'non series err':' '`
+                        resolve()  // error series
+
+                    }else{
+                        // normal read
+                        let pMax=datas.results[0].series.length
+                        let nMax=datas.results[0].series[0].values.length
+                        let values=[]
+                        let cNormal= new Array(pMax).fill(0)//正常データ個数
+                        // set columns
+                        values.push(datas.results[0].series[0].columns)
+                        // set values
+                        for(let j=0;j<nMax;j++){
+                            let time=datas.results[0].series[0].values[j][0] // yyyy-mm-ddThh:mm:ssZ
+                            let valid=!(moment(time).isBefore(moment(params.starttime)))
                             if(valid){
-                                if(vr.length==19){
-                                    // set normal numeric data
-                                    val_real=hex2num(vr.split(',')[0])
+                                // add a new time row
+                                values.push(datas.results[0].series[0].values[j])
+                                for(let i=0;i<pMax;i++){
                                     cNormal[i]=cNormal[i]+1
                                 }
-                                values[values.length-1].push(val_real)
                             }
                         }
+                        params.result[0]=values         // values
+                        params.result[1]=params.req_grp // group no
+                        params.result[2]=cNormal        // numbers of normal data
+                        params.normal_count++
+                        resolve(params)  // success
                     }
-                    params.result[0]=values
-                    params.result[1]=params.req_grp
-                    params.result[2]=cNormal
-                    params.normal_count++
-                    resolve(params)
-                }
+                })
             })
-        })
+        }
+        //-------------------------------------------------
+        // AX データ読込(１グループ)
+        async function readFromInflux_ax2(influx, params){
+            return await new Promise((resolve)=>{
+                let nKey = 'SUCSESS'
+                let wKey = 'WARNING'
+                let eKey = 'OTHERS'
+                let g=params.req_grp
+                let iids = `(iid='`+params.fields[params.req_grp].join("' or iid='")+`')`
+                let select = `select LAST(vr) as vr from ${params.meature}`
+                let where = `where time>'${params.readstarttime}' and time<'${params.endtime}'`
+                let tags = `and ${iids}`
+                let group = `group by time(${config.cyclesec}s), iid`
+                let query = `${select} ${where} ${tags} ${group}`
+
+                //1グループデータ読込
+                influx.queryRaw(query)
+                .then(datas => {
+                    if (datas.results[0].error){
+                        params.error_count++
+                        params.error_grp[g]=`'results err':${datas.results[0].error}`
+                        resolve() // error queryRaw
+
+                    }else if(!("series" in datas.results[0])){
+                        //console.log(datas.results[0])
+                        params.error_count++
+                        params.error_grp[g]=`'non series err':' '`
+                        resolve()  // error queryRaw
+
+                    }else{
+                        // normal read
+                        let pMax=datas.results[0].series.length
+                        let nMax=datas.results[0].series[0].values.length
+                        let values=[['time']] // set 'time' as header
+                        let preVal=[]
+                        let cNormal= new Array(pMax).fill(0)//正常データ個数
+                        for(let i=0;i<pMax;i++){
+                            //set iid as header
+                            values[0].push(datas.results[0].series[i].tags.iid)
+                            //set pre-value for replace null data
+                            preVal.push(datas.results[0].series[i].values[0][1])
+                        }
+                        for(let j=0;j<nMax;j++){
+                            let time=datas.results[0].series[0].values[j][0]
+                            let valid=!(moment(time).isBefore(moment(params.starttime)))
+                            if(valid){
+                                // add a new time row
+                                values.push([time])
+                            }
+                            for(let i=0;i<pMax;i++){
+                                let value=[]
+                                let val_real=config.badDatacode
+                                let vr=datas.results[0].series[i].values[j][1]
+                                if(vr==null){
+                                    vr=preVal[i]
+                                    if(vr==null){vr='0,8'}//set BAD
+                                }else{
+                                    preVal[i]=vr
+                                }
+                                if(valid){
+                                    if(vr.length==19){
+                                        // set normal numeric data
+                                        val_real=hex2num(vr.split(',')[0])
+                                        cNormal[i]=cNormal[i]+1
+                                    }
+                                    values[values.length-1].push(val_real)
+                                }
+                            }
+                        }
+                        params.result[0]=values         // InfluxDB data
+                        params.result[1]=params.req_grp // group no
+                        params.result[2]=cNormal        // numbers of normal data
+                        params.normal_count++
+                        resolve(params)  // success
+                    }
+                })
+            })
+        }
     },
-    // 1ファイルの配列データをCSVファイルテキストに変換
+
+
+    // 1ファイルの配列データにヘッダ分を追加し、CSVファイルテキストに変換
     convertToCsvFormat_ax:(params)=>{
         let csv
         let now = new Date()
@@ -106,12 +174,27 @@ module.exports = {
             let Description = ''
             let Unit=''
             let DP=''
-            if(params.result[0][0][i] in config.jsonio){
-                dcsTagNo = config.jsonio[params.result[0][0][i]].dcsTagNo
-                Description = config.jsonio[params.result[0][0][i]].Description
-                Unit=config.jsonio[params.result[0][0][i]].Unit
-                DP=config.jsonio[params.result[0][0][i]].DP
-           }
+            if(!config.useSiteDbOption){
+                if(params.result[0][0][i] in params.pointInfo){
+                    dcsTagNo = params.pointInfo[params.result[0][0][i]].dcsTagNo
+                    Description = params.pointInfo[params.result[0][0][i]].Description
+                    Unit=params.pointInfo[params.result[0][0][i]].Unit
+                    DP=params.pointInfo[params.result[0][0][i]].DP
+                }
+                //if(params.result[0][0][i] in config.jsonio){
+                //    dcsTagNo = config.jsonio[params.result[0][0][i]].dcsTagNo
+                //    Description = config.jsonio[params.result[0][0][i]].Description
+                //    Unit=config.jsonio[params.result[0][0][i]].Unit
+                //    DP=config.jsonio[params.result[0][0][i]].DP
+                //}
+            }else{
+                if(params.result[0][0][i] in params.pointInfo){
+                    dcsTagNo = params.result[0][0][i]
+                    Description=params.pointInfo[dcsTagNo].Description
+                    Unit=params.pointInfo[dcsTagNo].Units
+                    DP = ''
+                }
+            }
             let nn=params.result[1]*pp +i;
             if(i<params.result[0][0].length){
                 csv=csv+os.EOL+nn+','+dcsTagNo+','+Description+','+Unit+','+DP;
@@ -133,8 +216,9 @@ module.exports = {
     },
     // CSVファイルテキストをファイルへ書出し
     saveCsvFile:(csvAndFilename)=>{
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve)=>{
             var dist = path.join(process.env.PWD||process.cwd(),"work",path.sep,"csv",path.sep,csvAndFilename[1])
+            if (!fs.existsSync(path.dirname(dist))) {fs.mkdirSync(path.dirname(dist));}
             try{
                 let fd = fs.openSync(dist, "w");
                 fs.writeFileSync(dist,"");
@@ -143,9 +227,9 @@ module.exports = {
                 fs.closeSync(fd);
             }
             catch(err){
-                reject(err)
+                resolve()
             }
-            resolve("work"+path.sep+"csv"+path.sep+csvAndFilename[1])
+            resolve(dist)
         })
     },
 }
