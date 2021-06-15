@@ -78,7 +78,5 @@ module.exports = {
             let nano = new Date(nanoTime)*1000000 // to nano seconds
             return Influx.toNanoDate(String(nano)).toNanoISOString().replace(/\.0{9}Z/, 'Z');
         }
-
     }
-
 }

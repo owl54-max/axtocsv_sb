@@ -43,16 +43,15 @@ module.exports = {
             err = await pointindex.connectWithMongoDB()             // connect with mongoDB if useSiteDbOption=true
             err = await influxdb.existDatabase(influx, db_name)     // influxDBのDB名検査
             err = await influxdb.existMeasurement(influx, meature)  // influxDBのmeasurement検査
-        //    let tagNames =await influxdb.gettags(influx)          // influxDBのTags読み込み
-        //    let user = await influxdb.getUsers(influx)            // influxDBのユーザ名読み込み
-        //    let iids = await influxdb.getIidsFromTags(influx)     // influxDBのiid読み込み
+            //    let tagNames =await influxdb.gettags(influx)      // influxDBのTags読み込み
+            //    let user = await influxdb.getUsers(influx)        // influxDBのユーザ名読み込み
+            //    let iids = await influxdb.getIidsFromTags(influx) // influxDBのiid読み込み
 
             return(err)
     },
     makecsv_ax:async (reqstarttime, reqendtime, date,readstarttime)=>{
             // 有効ポイント抽出
             let csvFileList=[]
-        //    let iidNames = await influxdb.getFields(reqstarttime) // get iids
             let pointInfo = await influxdb.getFields(reqstarttime) // get iids
             let iids=Object.keys(pointInfo)
             console.log(`-- ${logtime()} found ${iids.length} points`)

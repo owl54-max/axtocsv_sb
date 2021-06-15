@@ -1,13 +1,11 @@
 require('date-utils')
-const os = require('os')
+//const os = require('os')
 const hostname = require('os').hostname()
 const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
 const archiver = require('archiver')
-const iconv = require('iconv-lite')
-const {hex2num}=require('hex-2-num')
-const { waitForDebugger } = require('inspector')
+//const iconv = require('iconv-lite')
 const config=require("../app_config")[hostname]
 const influxdb2=require("./influxdb2")
 const pointindex=require('../routes/pointindex.js');

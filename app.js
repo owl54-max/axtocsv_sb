@@ -8,6 +8,10 @@ const moment = require('moment')
 const axExec=require("./applications/axExecution")
 const config=require("./app_config")[hostname];
 const cron = require('node-cron')
+const fs = require('fs');
+
+const path = require('path')
+
 
 //---------------------------------------------
 // main()
@@ -38,6 +42,9 @@ async function main(){
 // zip file生成
 async function makezipfiles(startDate){
     // remove ./work/csv
+//    var dist = path.join(process.env.PWD||process.cwd(),"work",path.sep,"csv")
+//    if (fs.existsSync(dist)) {fs.unlinkSync(dist)}
+
     for(let d=0;d<config.days;d++){
         let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')
         let reqstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days')

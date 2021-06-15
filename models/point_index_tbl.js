@@ -6,26 +6,6 @@ mongoose.Promise = global.Promise;
 
 //---------------------------------
 // connect to mongoose
-/*
-const hostname = require('os').hostname()
-const config=require("../app_config")[hostname]
-const site_db_url=config.site_db.cel2
-const con = mongoose.connect(
-    site_db_url,
-    {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useUnifiedTopology: true,
-        useFindAndModify:false,
-    })
-    .then(() => {
-        console.log('-- success: Connect to',site_db_url)
-    })
-    .catch((err) => {
-        console.log('** Error connect to',site_db_url)
-    //    console.error(moment().format('hh:mm:ss'),'error: ',err);
-    })
-*/
 // define Schema
 var Schema = mongoose.Schema;
 //* ObjectId = Schema.ObjectId;
