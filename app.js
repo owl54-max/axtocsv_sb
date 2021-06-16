@@ -41,9 +41,10 @@ async function main(){
 //---------------------------------------------
 // zip file生成
 async function makezipfiles(startDate){
-    // remove ./work/csv
-//    var dist = path.join(process.env.PWD||process.cwd(),"work",path.sep,"csv")
-//    if (fs.existsSync(dist)) {fs.unlinkSync(dist)}
+    // remove dir ./work/csv/ for delete all csv files
+    var dist = path.join(process.env.PWD||process.cwd(),"work",path.sep,"csv",path.sep)
+    if (fs.existsSync(dist)){fs.rmdirSync(dist, { recursive: true });}
+
 
     for(let d=0;d<config.days;d++){
         let readstarttime=moment.utc(startDate,moment.ISO_8601).clone().add(d,'days').add(-1,'hours')

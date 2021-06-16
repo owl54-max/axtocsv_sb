@@ -6,7 +6,7 @@ module.exports = {
         // for test
         useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
         specifiedDate:'2021-02-08',     // 指定日（useSpecifiedDate=falseは今日）
-        days:1,                         // days from startDate
+        days:3,                         // days from startDate
         gMax:0,                         // >0：読込Group数（=0 全グループ）
         rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
         cyclic:false,                   // true:起動後サイクリック実行
