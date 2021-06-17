@@ -54,7 +54,7 @@ module.exports = {
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
-    //    timezineID:'Asia/Tokyo',      // TimezineID
+        timezineID:'Asia/Tokyo',      // TimezineID
         timezineID:'Asia/Bangkok',      // TimezineID
     //    timezineID:'America/Caracas',      // TimezineID
     //    timezineID:'Australia/Darwin',      // TimezineID
