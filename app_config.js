@@ -49,7 +49,7 @@ module.exports = {
         specifiedDate:'2020-09-13',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
         gMax:0,                         // >0：読込Group数（=0 全グループ）
-        rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
+        rewitezip:false,                 // true:zipファイル上書き（false：zip有は生成バイパス）
         cyclic:true,                   // true:起動後サイクリック実行
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
