@@ -45,12 +45,12 @@ module.exports = {
     },
     "TPSCPC065047":{
         // from RPC (remote)
-        useSpecifiedDate:false,         // true:指定よりday日分（true:昨日までのday日間）
-        specifiedDate:'2020-09-13',     // 指定日（useSpecifiedDate=falseは今日）
+        useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
+        specifiedDate:'2020-09-19',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
         gMax:0,                         // >0：読込Group数（=0 全グループ）
-        rewitezip:false,                 // true:zipファイル上書き（false：zip有は生成バイパス）
-        cyclic:true,                   // true:起動後サイクリック実行
+        rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
+        cyclic:false,                   // true:起動後サイクリック実行
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
@@ -60,7 +60,7 @@ module.exports = {
     //    timezineID:'Australia/Darwin',      // TimezineID
 
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
-        cyclesec:10,                    // sampling cycle(sec)
+        cyclesec:60,                    // sampling cycle(sec)
         badDatacode:null,               // influxデータ数値外コード
         // influxdb spec
         influxdb:{
