@@ -37,8 +37,10 @@ module.exports = {
     // mongoDB からポイント情報読込
     getPoints:async(startdate)=>{
         if(!config.useSiteDbOption) return null
-        let startdatetime=nanoToTimestr(startdate)
+        let startdate1=`${moment.utc(startdate).format("YYYY-MM-DDT00:00:00Z")}`
+        let startdatetime=nanoToTimestr(startdate1)
         let key={points_datetime:startdatetime}
+        //console.log('key=',key,startdate1,startdate)
         let doc = await findOneSync(PointIndexHashModel,key,'PointIndex hash')
         if(doc !==null){
             //console.log('success get hash:',doc.points_hash)
@@ -46,8 +48,6 @@ module.exports = {
             doc = await findOneSync(PointIndexModel,key,'PointIndex hash')
             if(doc !==null){
                 const points_json = JSON.parse(doc.points);
-            //    console.log(points_json.)
-            //    console.log('point numbers=',Object.keys(points_json.fileds).length)
                 return points_json
             }else{
                 console.log('findOneSync error2')

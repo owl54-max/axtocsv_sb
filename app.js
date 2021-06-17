@@ -5,6 +5,7 @@
 const hostname = require('os').hostname()
 console.log('hostname=',hostname)
 const moment = require('moment')
+const momentTimezone = require('moment-timezone');
 const axExec=require("./applications/axExecution")
 const config=require("./app_config")[hostname];
 const cron = require('node-cron')
@@ -16,13 +17,34 @@ const path = require('path')
 //---------------------------------------------
 // main()
 async function main(){
-    let toDate=`${moment.utc().clone().add(-1,'days').format("YYYY-MM-DD 23:59:59")}`
-    let startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD 00:00:00")
+    let TimeZoneID=config.timezineID;                                   // TimeZoneID
+    let curLOC=`${moment().clone().format("YYYY-MM-DD HH:mm:ss")}`      // This PC Local DateTime now()
+    let curUTC=`${moment.utc().clone().format("YYYY-MM-DD HH:mm:ss")}`  // UTC DateTime now()
+    let momentUTC = momentTimezone.tz(curUTC, 'UTC');                   // moment format of UTC DAteTime now()
+    let nowLocal = momentTimezone(momentUTC).tz(TimeZoneID).format('YYYY-MM-DD HH:mm:ss')       // Local DateTime at TimeZoneID
+    let dhours = ((new Date(nowLocal)).getTime()-(new Date(curLOC)).getTime())/1000/60/60*-1    // diff nowLocal and curLoc (hours)
+
+    // toDate LocalTime at TimeZoneID
+    let toDate=`${moment(nowLocal).clone().add(-1,'days').format("YYYY-MM-DD 23:59:59")}`
+    // startDate LocalTime at TimeZoneID
+    let startDate=moment(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').add(dhours,'hours').format("YYYY-MM-DD 00:00:00")
     if(config.useSpecifiedDate){
+        // if specific DateTime
         toDate=moment.utc(config.specifiedDate,moment.ISO_8601).clone().add(config.days,'days').format("YYYY-MM-DD 23:59:59")
         startDate=moment.utc(toDate,moment.ISO_8601).clone().add((config.days*-1+1),'days').format("YYYY-MM-DD 00:00:00")
     }
-    console.log(`== ${logtime()} strart read from ${startDate} to ${toDate} as UTC`)
+    //
+    let toDate2=`${moment(toDate).clone().add(dhours,'hours').format("YYYY-MM-DD HH:mm:ss")}`
+    let startDate2=`${moment(startDate).clone().add(dhours,'hours').format("YYYY-MM-DD HH:mm:ss")}`
+
+    let toDateUTC=`${moment(toDate2).utc().format("YYYY-MM-DD HH:mm:ss")}`
+    let startDateUTC=`${moment(startDate2).utc().format("YYYY-MM-DD HH:mm:ss")}`
+
+    console.log('== now',nowLocal,':','csv','['+startDate+']-['+toDate+']',config.days,'days :',TimeZoneID,':')
+    console.log('== now',curLOC,':','csv','['+startDate2+']-['+toDate2+']',config.days,'days :','ThisPC',':')
+    console.log('== now',curUTC,':','csv','['+startDateUTC+']-['+toDateUTC+']',config.days,'days :','UTC',':')
+
+    console.log(`== ${logtime()} strart read [${startDateUTC} - ${toDateUTC} (UTC)`)
     let err = await axExec.check()              // influxDBへのPING
     if(!err){
         err = await axExec.connentdb()          // influxDB接続
@@ -30,7 +52,7 @@ async function main(){
             err = await axExec.readinfo()       // DB情報取得
             if(!err){
                 // make csv files, and then make zip
-                await makezipfiles(startDate)
+                await makezipfiles(startDateUTC)
             }
         }
     }

@@ -5,7 +5,7 @@ module.exports = {
     "mbb.local":{
         // for test
         useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
-        specifiedDate:'2021-02-08',     // 指定日（useSpecifiedDate=falseは今日）
+        specifiedDate:'2021-02-09',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
         gMax:0,                         // >0：読込Group数（=0 全グループ）
         rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
@@ -13,6 +13,13 @@ module.exports = {
         cyclictime:'*/10 * * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
+        timezineID:'Asia/Tokyo',      // TimezineID
+    //    timezineID:'Asia/Bangkok',      // TimezineID
+    //    timezineID:'America/Caracas',      // TimezineID
+    //    timezineID:'Australia/Darwin',      // TimezineID
+
+
+
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
         cyclesec:600,                    // sampling cycle(sec)
         badDatacode:null,               // influxデータ数値外コード
@@ -49,6 +56,7 @@ module.exports = {
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
+        timezineID:'Asia/Bangkok',      // TimezineID
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
         cyclesec:10,                    // sampling cycle(sec)
         badDatacode:null,               // influxデータ数値外コード

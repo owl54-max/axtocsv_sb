@@ -149,6 +149,7 @@ module.exports = {
     //** Fiels一覧を取得 */
     getFields: async (reqstarttime)=>{
     //    let fields=[]
+
         let pointInfo={}
         try{
             if(config.useSiteDbOption){
