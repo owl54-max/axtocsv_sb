@@ -18,8 +18,6 @@ module.exports = {
     //    timezineID:'America/Caracas',      // TimezineID
     //    timezineID:'Australia/Darwin',      // TimezineID
 
-
-
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
         cyclesec:600,                    // sampling cycle(sec)
         badDatacode:null,               // influxデータ数値外コード
@@ -56,7 +54,11 @@ module.exports = {
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
+    //    timezineID:'Asia/Tokyo',      // TimezineID
         timezineID:'Asia/Bangkok',      // TimezineID
+    //    timezineID:'America/Caracas',      // TimezineID
+    //    timezineID:'Australia/Darwin',      // TimezineID
+
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
         cyclesec:10,                    // sampling cycle(sec)
         badDatacode:null,               // influxデータ数値外コード
