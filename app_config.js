@@ -1,5 +1,5 @@
 
-var dcsValidPointList = require('./data/SB2_AX-Server_IO_List_rev1b_mod.json');
+var dcsValidPointList = require('./data/SB2_ax_tagtbl_rev1_0622.json');
 
 module.exports = {
     "mbb.local":{
