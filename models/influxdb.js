@@ -8,7 +8,7 @@ const archiver = require('archiver')
 //const iconv = require('iconv-lite')
 const config=require("../app_config")[hostname]
 const influxdb2=require("./influxdb2")
-const pointindex=require('../routes/pointindex.js');
+const pointindex=require('../routes/pointIndex.js');
 
 
 module.exports = {

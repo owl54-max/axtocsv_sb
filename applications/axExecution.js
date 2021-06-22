@@ -12,7 +12,7 @@ const createdb_option = config.influxdb.createdb_option;  // create database(db_
 
 const influx = new Influx.InfluxDB({ host: host, database: db_name, port: port });
 const influxdb=require('../models/influxdb');
-const pointindex=require('../routes/pointindex.js');
+const pointindex=require('../routes/pointIndex.js');
 // log time
 function logtime(){
     return `${moment().format("HH:mm:ss")}`
