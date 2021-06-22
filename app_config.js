@@ -2,8 +2,44 @@
 var dcsValidPointList = require('./data/SB2_ax_tagtbl_rev1_0622.json');
 
 module.exports = {
+    "sgxVPNVmGwLinux":{
+        // For SB2 on HQ
+        useSpecifiedDate:false,         // true:指定よりday日分（true:昨日までのday日間）
+        specifiedDate:'2020-09-19',     // 指定日（useSpecifiedDate=falseは今日）
+        days:1,                         // days from startDate
+        gMax:0,                         // >0：読込Group数（=0 全グループ）
+        rewitezip:true,                 // true:zipファイル上書き（false：zip有は生成バイパス）
+        cyclic:false,                   // true:起動後サイクリック実行
+        cyclictime:'0 */10 * * * *',     // サイクリック時間
+        // site spec
+        siteName:'sb2',                 // site
+        timezineID:'Asia/Makassar',     // インドネシア南スラウェシ（+08:00）
+
+        jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
+        cyclesec:1,                    // sampling cycle(sec)
+        badDatacode:null,               // influxデータ数値外コード
+        // influxdb spec
+        influxdb:{
+            //** */ sb2 site(HQ)
+            host: '192.168.101.11' ,    // InfluxDB host(AX_Server(DB))
+            port : '8086',              // InfluxDB port
+            db_name: 'axhst',           // data base name
+            meature: 'hist',            // measurement
+            createdb_option:false,      // create database(db_name) when not exist it.
+            pointsInGroup:16 ,          // 一度に読込むポイント点数
+            limitEvryRead:86400 ,       // 一度に読込む時刻列データ数
+        },
+        useSiteDbOption:false,
+        site_db : {
+            "cel2":"mongodb://localhost:27017/site_cel2"
+        },
+    //    point_index_tbls:{
+    //        points:'./data/point_index_tbls.csv'
+    //    }
+    },
+
     "mbb.local":{
-        // for test
+        // for MAC-M1
         useSpecifiedDate:true,         // true:指定よりday日分（true:昨日までのday日間）
         specifiedDate:'2021-02-09',     // 指定日（useSpecifiedDate=falseは今日）
         days:3,                         // days from startDate
@@ -13,10 +49,7 @@ module.exports = {
         cyclictime:'*/10 * * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
-        timezineID:'Asia/Tokyo',      // TimezineID
-    //    timezineID:'Asia/Bangkok',      // TimezineID
-    //    timezineID:'America/Caracas',      // TimezineID
-    //    timezineID:'Australia/Darwin',      // TimezineID
+        timezineID:'Asia/Makassar',     // インドネシア南スラウェシ（+08:00）
 
         jsonio:dcsValidPointList,       // 有効dscTagNo定義JSONファイルパス
         cyclesec:600,                    // sampling cycle(sec)
@@ -28,8 +61,6 @@ module.exports = {
             port : '8086',              // InfluxDB port
             db_name: 'cel2_test',       // data base name
             meature: 'histrical',       // measurement
-    //        keyPoint: '3MKA10CE011.spv',// influxdbに実在するfield名
-        //    where_query_tags: `where iid='SB_010200000000000001' or iid='SB_010200000000000002'` ,//
             createdb_option:false,      // create database(db_name) when not exist it.
             pointsInGroup:16 ,          // 一度に読込むポイント点数
             limitEvryRead:86400 ,       // 一度に読込む時刻列データ数
@@ -39,10 +70,11 @@ module.exports = {
         site_db : {
             "cel2":"mongodb://localhost:27017/site_cel2"
         },
-        point_index_tbls:{
-            points:'./data/point_index_tbls.csv'
-        }
+    //    point_index_tbls:{
+    //        points:'./data/point_index_tbls.csv'
+    //    }
     },
+
     "TPSCPC065047":{
         // from RPC (remote)
         useSpecifiedDate:false,         // true:指定よりday日分（true:昨日までのday日間）
@@ -54,8 +86,8 @@ module.exports = {
         cyclictime:'0 */10 * * * *',     // サイクリック時間
         // site spec
         siteName:'sb2',                 // site
-        timezineID:'Asia/Tokyo',      // TimezineID
-        timezineID:'Asia/Bangkok',      // TimezineID
+    //    timezineID:'Asia/Tokyo',      // TimezineID
+        timezineID:'Asia/Makassar',      // インドネシア南スラウェシ（+08:00）
     //    timezineID:'America/Caracas',      // TimezineID
     //    timezineID:'Australia/Darwin',      // TimezineID
 
@@ -69,8 +101,6 @@ module.exports = {
             port : '8086',              // InfluxDB port
             db_name: 'axhst',           // data base name
             meature: 'hist',            // measurement
-    //        keyPoint: 'vr' ,
-        //    where_query_tags: `where iid='SB_010200000000000001' or iid='SB_010200000000000002'` ,//
             createdb_option:false,      // create database(db_name) when not exist it.
             pointsInGroup:16 ,          // 一度に読込むポイント点数
             limitEvryRead:86400 ,       // 一度に読込む時刻列データ数
@@ -79,9 +109,10 @@ module.exports = {
         site_db : {
             "cel2":"mongodb://localhost:27017/site_cel2"
         },
-        point_index_tbls:{
-            points:'./data/point_index_tbls.csv'
-        }
+    //    point_index_tbls:{
+    //        points:'./data/point_index_tbls.csv'
+    //    }
 
     }
+
 }

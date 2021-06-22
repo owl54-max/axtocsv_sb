@@ -165,7 +165,7 @@ module.exports = {
         let nowDateTime = now.toFormat("YYYY/MM/DD,HH24:MI:SS")
         let csvFileName = params.result[0][1][0].split('T')[0].replace(/-/g,'')+params.result[1]+'.csv';
         csv='Trend,'+csvFileName+','+nowDateTime;
-        csv=csv+os.EOL+',TagNo,Description,Unit,Dp';
+        csv=csv+os.EOL+',TagNo,Description,Unit,Dp,dspMax,dspMin';
         let datalabel = 'Date,Time'
         // ポイント情報（1－20行）データヘッダを生成
         pp = params.pointsInGroup; // points/group
@@ -180,24 +180,23 @@ module.exports = {
                     Description = params.pointInfo[params.result[0][0][i]].Description
                     Unit=params.pointInfo[params.result[0][0][i]].Unit
                     DP=params.pointInfo[params.result[0][0][i]].DP
+                    dspMax=params.pointInfo[params.result[0][0][i]].disp_upper
+                    dspMin=params.pointInfo[params.result[0][0][i]].disp_lower
                 }
-                //if(params.result[0][0][i] in config.jsonio){
-                //    dcsTagNo = config.jsonio[params.result[0][0][i]].dcsTagNo
-                //    Description = config.jsonio[params.result[0][0][i]].Description
-                //    Unit=config.jsonio[params.result[0][0][i]].Unit
-                //    DP=config.jsonio[params.result[0][0][i]].DP
-                //}
+ 
             }else{
                 if(params.result[0][0][i] in params.pointInfo){
                     dcsTagNo = params.result[0][0][i]
                     Description=params.pointInfo[dcsTagNo].Description
                     Unit=params.pointInfo[dcsTagNo].Units
                     DP = ''
+                    dspMax=''
+                    dspMin=''
                 }
             }
             let nn=params.result[1]*pp +i;
             if(i<params.result[0][0].length){
-                csv=csv+os.EOL+nn+','+dcsTagNo+','+Description+','+Unit+','+DP;
+                csv=csv+os.EOL+nn+','+dcsTagNo+','+Description+','+Unit+','+DP+','+dspMax+','+dspMin;
             }else{
                 csv=csv+os.EOL+nn+',,,,';
             }

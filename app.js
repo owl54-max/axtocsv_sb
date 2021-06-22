@@ -40,9 +40,9 @@ async function main(){
     let toDateUTC=`${moment(toDate2).utc().format("YYYY-MM-DD HH:mm:ss")}`
     let startDateUTC=`${moment(startDate2).utc().format("YYYY-MM-DD HH:mm:ss")}`
 
-    console.log('== now',nowLocal,':','csv','['+startDate+']-['+toDate+']',config.days,'days :',TimeZoneID,':')
-    console.log('== now',curLOC,':','csv','['+startDate2+']-['+toDate2+']',config.days,'days :','ThisPC',':')
-    console.log('== now',curUTC,':','csv','['+startDateUTC+']-['+toDateUTC+']',config.days,'days :','UTC',':')
+    console.log('== csv','['+startDate+']-['+toDate+']',config.days,'days ,now',nowLocal,'at',TimeZoneID)
+    console.log('== csv','['+startDate2+']-['+toDate2+']',config.days,'days ,now',curLOC,'at','ThisPC')
+    console.log('== csv','['+startDateUTC+']-['+toDateUTC+']',config.days,'days ,now',curUTC,'at','UTC')
 
     console.log(`== ${logtime()} strart read [${startDateUTC} - ${toDateUTC} (UTC)`)
     let err = await axExec.check()              // influxDBへのPING
